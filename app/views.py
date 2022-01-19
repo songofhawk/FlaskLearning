@@ -51,7 +51,7 @@ def login():
 
 @app.route('/logout')
 def logout():
-    logout_user()
+    app.current_user = None
     return redirect(url_for('index'))
 
 
