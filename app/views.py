@@ -87,10 +87,8 @@ def user(nickname):
     if user is None:
         flash('User ' + nickname + ' not found.')
         return redirect(url_for('index'))
-    posts = [
-        {'author': user, 'body': 'Test post #1'},
-        {'author': user, 'body': 'Test post #2'}
-    ]
+    posts = user.posts.all()
+
     return render_template('user.html',
                            user=user,
                            posts=posts,
