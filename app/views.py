@@ -1,6 +1,6 @@
 from flask import render_template, flash, redirect, url_for, session, request, g
 from flask_login import login_user, logout_user, current_user, login_required
-from app import app, lm, oid
+from app import app, lm, oid, db
 from .forms import LoginForm
 from .models import User
 
@@ -12,9 +12,11 @@ def before_request():
 
 @app.route('/')
 @app.route('/index')
-@login_required
+# @login_required
 def index():
-    user = g.user
+    # user = g.user
+    user = app.current_user if hasattr(app, 'current_user') else None
+    # user = User.query.filter_by(email=user_fill_id).first()
     posts = [
         {
             'author': {'username': 'John'},
@@ -25,7 +27,7 @@ def index():
             'body': 'The Avengers movie was so cool!'
         }
     ]
-    return render_template('index.html', title='Home', user=user, posts=posts)
+    return render_template('index.html', title='Home', user=user, posts=posts, app=app)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -36,11 +38,21 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         session['remember_me'] = form.remember_me.data
-        return oid.try_login(form.openid.data, ask_for=['nickname', 'email'])
+        user_fill_id = form.openid.data
+        app.current_user = User.query.filter_by(email=user_fill_id).first()
+        return redirect(url_for('index'))
+        # return oid.try_login(form.openid.data, ask_for=['nickname', 'email'])
     return render_template('login.html',
                            title='Sign In',
                            form=form,
-                           providers=app.config['OPENID_PROVIDERS'])
+                           providers=app.config['OPENID_PROVIDERS'],
+                           app=app)
+
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
 
 @lm.user_loader
