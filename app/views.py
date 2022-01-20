@@ -56,8 +56,13 @@ def login():
     if form.validate_on_submit():
         session['remember_me'] = form.remember_me.data
         user_fill_id = form.openid.data
-        app.current_user = User.query.filter_by(email=user_fill_id).first()
-        return redirect(url_for('index'))
+        user = User.query.filter_by(email=user_fill_id).first()
+        if user:
+            app.current_user = user
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid login. Please try again.')
+            return redirect(url_for('login'))
         # return oid.try_login(form.openid.data, ask_for=['nickname', 'email'])
     return render_template('login.html',
                            title='Sign In',
