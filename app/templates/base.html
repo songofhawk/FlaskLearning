@@ -9,7 +9,7 @@
   <body>
     <div>Microblog:
         <a href="{{ url_for('index') }}">Home</a>
-        {% if app|attr('current_user') %}
+        {% if app and app|attr('current_user') %}
           <a href="{{ url_for('user', nickname = app.current_user.nickname) }}">Your Profile</a>
           <a href="{{ url_for('logout') }}">Logout</a>
         {% else %}

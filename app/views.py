@@ -1,13 +1,28 @@
 from flask import render_template, flash, redirect, url_for, session, request, g
 from flask_login import login_user, logout_user, current_user, login_required
 from app import app, lm, oid, db
-from .forms import LoginForm
+from .forms import LoginForm, EditForm
 from .models import User
+from datetime import datetime
 
 
 @app.before_request
 def before_request():
-    g.user = current_user
+    # g.user = app.current_user
+    print('before_request')
+    if hasattr(app, 'current_user'):
+        app.current_user.last_seen = datetime.utcnow()
+        # app.current_user.update()
+        # print('update')
+        # User.update(app.current_user)
+        # db.session.flush()
+        # print('flush')
+        '''
+        session.add的含义，是把这个数据对象交给db session来管理
+        每一个请求，都有自己的db session，这是由Flash-Sqlalchemy插件来维护的
+        '''
+        db.session.add(app.current_user)
+        db.session.commit()
 
 
 @app.route('/')
@@ -33,8 +48,8 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 @oid.loginhandler
 def login():
-    if g.user is not None and g.user.is_authenticated:
-        return redirect(url_for('index'))
+    # if g.user is not None and g.user.is_authenticated:
+    #     return redirect(url_for('index'))
     form = LoginForm()
     if form.validate_on_submit():
         session['remember_me'] = form.remember_me.data
@@ -93,3 +108,36 @@ def user(nickname):
                            user=user,
                            posts=posts,
                            app=app)
+
+
+@app.route('/edit', methods=['GET', 'POST'])
+def edit():
+    form = EditForm()
+    if not hasattr(app, 'current_user'):
+        return redirect(url_for('index'))
+    user = app.current_user
+    if form.validate_on_submit():
+        user.nickname = form.nickname.data
+        user.about_me = form.about_me.data
+        db.session.add(user)
+        db.session.commit()
+        flash('Your changes have been saved.')
+        return redirect(url_for('edit'))
+    else:
+        form.nickname.data = user.nickname
+        form.about_me.data = user.about_me
+    return render_template('edit.html', form=form)
+
+
+@app.errorhandler(404)
+def internal_error(error):
+    print('404 handler')
+    return render_template('404.html'), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    print('500 handler')
+    '''如果项目启动时，配置了FlaskDebug=True参数，那么这个handler不会执行'''
+    db.session.rollback()
+    return render_template('500.html'), 500
