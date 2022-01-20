@@ -1,8 +1,8 @@
 from flask import render_template, flash, redirect, url_for, session, request, g
 from flask_login import login_user, logout_user, current_user, login_required
 from app import app, lm, oid, db
-from .forms import LoginForm, EditForm
-from .models import User
+from .forms import LoginForm, EditForm, PostForm
+from .models import User, Post
 from datetime import datetime
 
 
@@ -26,23 +26,25 @@ def before_request():
 
 
 @app.route('/')
-@app.route('/index')
+@app.route('/index', methods=['GET', 'POST'])
 # @login_required
 def index():
     # user = g.user
     user = app.current_user if hasattr(app, 'current_user') else None
-    # user = User.query.filter_by(email=user_fill_id).first()
-    posts = [
-        {
-            'author': {'username': 'John'},
-            'body': 'Beautiful day in Portland!'
-        },
-        {
-            'author': {'username': 'Susan'},
-            'body': 'The Avengers movie was so cool!'
-        }
-    ]
-    return render_template('index.html', title='Home', user=user, posts=posts, app=app)
+    form = PostForm()
+    if form.validate_on_submit():
+        post = Post(body=form.post.data, timestamp=datetime.utcnow(), author=user)
+        db.session.add(post)
+        db.session.commit()
+        flash('Your post is now live!')
+        return redirect(url_for('index'))
+    posts = user.followed_posts().all() if user is not None else None
+
+    return render_template('index.html',
+                           title='Home',
+                           form=form,
+                           posts=posts,
+                           user=user)
 
 
 @app.route('/login', methods=['GET', 'POST'])
