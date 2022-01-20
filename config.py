@@ -24,3 +24,4 @@ MAIL_PASSWORD = None
 # administrator list
 ADMINS = ['you@example.com']
 
+POSTS_PER_PAGE = 3

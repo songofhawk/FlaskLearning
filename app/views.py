@@ -1,6 +1,7 @@
 from flask import render_template, flash, redirect, url_for, session, request, g
 from flask_login import login_user, logout_user, current_user, login_required
 from app import app, lm, oid, db
+from config import POSTS_PER_PAGE
 from .forms import LoginForm, EditForm, PostForm
 from .models import User, Post
 from datetime import datetime
@@ -25,10 +26,11 @@ def before_request():
         db.session.commit()
 
 
-@app.route('/')
-@app.route('/index', methods=['GET', 'POST'])
+@app.route('/', methods = ['GET', 'POST'])
+@app.route('/index', methods = ['GET', 'POST'])
+@app.route('/index/<int:page>', methods = ['GET', 'POST'])
 # @login_required
-def index():
+def index(page=1):
     # user = g.user
     user = app.current_user if hasattr(app, 'current_user') else None
     form = PostForm()
@@ -38,7 +40,7 @@ def index():
         db.session.commit()
         flash('Your post is now live!')
         return redirect(url_for('index'))
-    posts = user.followed_posts().all() if user is not None else None
+    posts = user.followed_posts().paginate(page, POSTS_PER_PAGE, False).items if user is not None else None
 
     return render_template('index.html',
                            title='Home',
