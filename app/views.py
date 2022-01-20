@@ -112,7 +112,7 @@ def user(nickname):
 
 @app.route('/edit', methods=['GET', 'POST'])
 def edit():
-    form = EditForm()
+    form = EditForm(app.current_user)
     if not hasattr(app, 'current_user'):
         return redirect(url_for('index'))
     user = app.current_user
